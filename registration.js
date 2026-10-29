@@ -107,27 +107,74 @@ form.addEventListener('submit', event => {
   const status = document.getElementById('form-status'); status.textContent = '';
   if (submitting) { event.preventDefault(); return; }
   const p = calculate();
+  const reference = crypto.randomUUID();
   if (Number(p.adults) + Number(p.children) === 0) { event.preventDefault(); status.textContent = '참가 인원을 1명 이상 선택해 주세요.'; return; }
   if (new FormData(form).get('entry.2000713890') !== '동의') { event.preventDefault(); status.textContent = '원본 신청서 안내에 따라 촬영 비동의 시 참가 신청을 진행할 수 없습니다.'; return; }
   const [hour, minute] = document.getElementById('arrival').value.split(':');
   form.elements.namedItem('entry.782972763_hour').value = String(Number(hour));
   form.elements.namedItem('entry.782972763_minute').value = String(Number(minute));
+  const submittedData = new FormData(form);
+  const submittedDetails = registrationFields.map(question => ({label: question.title, value: question.type === 10 ? document.getElementById('arrival').value : question.entries.map(entry => { const values = submittedData.getAll(`entry.${entry.id}`); return entry.row ? `${entry.row}: ${values.join(' · ')}` : values.join(' · '); }).join(' · ') || '미작성'}));
+  submittedDetails.push({label: '추가 차량', value: `${p.extraCars}대`});
   const memo = form.elements.namedItem('entry.710258770');
   // A separate hidden value preserves the user's memo if navigation fails or they return.
   memo.disabled = true;
   form.querySelector('[data-calculated-memo]')?.remove();
-  form.append(element('input', { type: 'hidden', name: 'entry.710258770', 'data-calculated-memo': '', value: `${memo.value}\n\n[홈페이지 자동 계산]\n기본 ${money(p.base)} / 추가 성인 ${Math.max(0, Number(p.adults) - 2)}명·아동 ${Math.max(0, Number(p.children) - 2)}명: ${money(p.extraPeople * p.rate)} / 추가 차량 ${p.extraCars}대: ${money(p.extraCars * 10000)}\n입금 예정 금액: ${money(p.total)} (다자녀 면제 미반영)` }));
+  form.append(element('input', { type: 'hidden', name: 'entry.710258770', 'data-calculated-memo': '', value: `${memo.value}\n\n[홈페이지 자동 계산]\n기본 ${money(p.base)} / 추가 성인 ${Math.max(0, Number(p.adults) - 2)}명·아동 ${Math.max(0, Number(p.children) - 2)}명: ${money(p.extraPeople * p.rate)} / 추가 차량 ${p.extraCars}대: ${money(p.extraCars * 10000)}\n입금 예정 금액: ${money(p.total)} (다자녀 면제 미반영)\n[접수 확인 코드: ${reference}]` }));
   submitting = true;
+  form.querySelector('[type=submit]').disabled = true;
+  startConfirmation(reference, form.elements.namedItem('entry.1912926423').value.trim(), form.elements.namedItem('entry.1239222796').value, submittedDetails);
   status.textContent = '신청서를 제출하고 있습니다. 잠시 후 접수 결과를 확인해 주세요.';
 });
 window.addEventListener('pageshow', () => {
   submitting = false;
+  form.querySelector('[type=submit]').disabled = false;
   form.querySelector('[data-calculated-memo]')?.remove();
   form.elements.namedItem('entry.710258770').disabled = false;
   document.getElementById('form-status').textContent = '';
 });
 document.getElementById('copy-account').addEventListener('click', async () => {
-  try { await navigator.clipboard.writeText('79423591938'); document.getElementById('copy-status').textContent = '계좌번호를 복사했습니다.'; }
-  catch { document.getElementById('copy-status').textContent = '계좌번호 79423591938을 직접 복사해 주세요.'; }
+  try { await navigator.clipboard.writeText(CAMP_PAYMENT.account); document.getElementById('copy-status').textContent = '계좌번호를 복사했습니다.'; }
+  catch { document.getElementById('copy-status').textContent = `계좌번호 ${CAMP_PAYMENT.account}을 직접 복사해 주세요.`; }
 });
 updatePrice();
+
+document.getElementById('registration-account').textContent = `${CAMP_PAYMENT.bank} · ${CAMP_PAYMENT.holder} · ${CAMP_PAYMENT.account}`;
+let verification;
+let verificationTimeout;
+let queryNonce = '';
+function startConfirmation(reference, name, phone, details) {
+  verification = { reference, name, phone, details, attempts: 0 };
+  setTimeout(checkConfirmation, 2500);
+}
+function checkConfirmation() {
+  if (!verification) return;
+  if (++verification.attempts > 8) { confirmationDelayed(); return; }
+  queryNonce = crypto.randomUUID();
+  const request = element('form', { action: CAMP_LOOKUP_URL, method: 'post', target: 'registration-verify-frame', hidden: '' });
+  Object.entries({name: verification.name, phone: verification.phone, nonce: queryNonce}).forEach(([name,value]) => request.append(element('input',{type:'hidden',name,value})));
+  document.body.append(request); request.submit(); request.remove();
+  clearTimeout(verificationTimeout);
+  verificationTimeout = setTimeout(confirmationDelayed, 20000);
+}
+function confirmationDelayed() {
+  clearTimeout(verificationTimeout); queryNonce = '';
+  document.getElementById('form-status').textContent = '접수 확인이 지연되고 있습니다. 중복 제출하지 마시고 신청 내역 확인하기에서 조회해 주세요.';
+  if (!document.getElementById('verification-retry')) {
+    const retry = element('button',{type:'button',id:'verification-retry',class:'text-link'},'접수 여부 다시 확인하기');
+    retry.addEventListener('click',()=>{verification.attempts=0; document.getElementById('form-status').textContent='접수 여부를 다시 확인하고 있습니다.'; checkConfirmation();});
+    document.getElementById('form-status').after(retry);
+  }
+}
+window.addEventListener('message', event => {
+  if (!/^https:\/\/[a-z0-9-]+(?:-script|\.script)\.googleusercontent\.com$/.test(event.origin) && event.origin !== 'https://script.google.com') return;
+  const data = event.data;
+  if (!verification || !queryNonce || !data || data.type !== 'xmas-lookup' || data.nonce !== queryNonce) return;
+  clearTimeout(verificationTimeout); queryNonce = '';
+  if (!data.ok || !Array.isArray(data.records)) { confirmationDelayed(); return; }
+  const saved = data.records.find(record => record.reference === verification.reference);
+  if (!saved) { setTimeout(checkConfirmation, 4000); return; }
+  try { sessionStorage.setItem('xmas-confirmed-receipt', JSON.stringify({...saved, details: verification.details})); }
+  catch { document.getElementById('form-status').textContent='신청이 접수되었습니다. 이 기기에서 완료 내역을 보관할 수 없어 신청 내역 확인하기에서 조회해 주세요.'; return; }
+  location.assign('complete.html');
+});

@@ -5,3 +5,4 @@
 .arrival-notice{font-size:12px;font-weight:700;color:var(--red);margin-bottom:12px}
 
 .lookup-link{margin:12px 0;border:1px solid var(--pine);background:transparent}.lookup-link:hover{background:#e8eddd}.registration>.lookup-link{margin:0 28px 28px}#lookup-results dd{max-width:65%;text-align:right}#lookup-form button:disabled{opacity:.6}
+.all-details-title{font-size:24px;margin-top:36px}.completed-details{margin:20px 0}.completed-details>div{padding:18px 0;border-bottom:1px solid var(--line)}.completed-details dt{font-size:12px;color:var(--muted);margin-bottom:8px}.completed-details dd{margin:0;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal}#account-info{white-space:pre-line}#verification-retry{margin-top:12px}.submit-button:disabled{opacity:.65}
