@@ -1,6 +1,6 @@
 'use strict';
 // Set after the form owner's web app deployment is authorized.
-const LOOKUP_ENDPOINT = '';
+const LOOKUP_ENDPOINT = 'https://script.google.com/macros/s/AKfycbwf7RC4OYH2NgjxlItgN3kA1UUuKLUtV69xbcMzCTrzV7A4jBhjL3qnY53YbY6lMVJJyw/exec';
 const lookup = document.getElementById('lookup-form');
 const status = document.getElementById('lookup-status');
 const results = document.getElementById('lookup-results');
