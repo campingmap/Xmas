@@ -59,7 +59,11 @@ registrationFields.forEach(question => {
       const input = element(question.type === 1 ? 'textarea' : 'input', { ...attrs, 'aria-label': question.title });
       if (question.type !== 1) input.type = entry.id === 1239222796 ? 'tel' : 'text';
       if (entry.id === 1912926423) input.autocomplete = 'name';
-      if (entry.id === 1239222796) { input.autocomplete = 'tel'; input.inputMode = 'tel'; }
+      if (entry.id === 1239222796) {
+        input.autocomplete = 'tel'; input.inputMode = 'numeric'; input.pattern = '[0-9]{10,11}'; input.maxLength = 11; input.minLength = 10; input.placeholder = '01012345678';
+        input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 11); });
+        group.append(element('p', { class: 'field-description' }, '연락처는 하이픈(-) 없이 숫자만 입력해 주세요. 예: 01012345678'));
+      }
       group.append(input);
     }
   });

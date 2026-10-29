@@ -3,3 +3,5 @@
 .family-field{margin:24px 0;padding:24px 18px;background:#e8eddd;border:2px solid var(--pine);border-radius:6px;scroll-margin-top:84px}.person-count{margin:0;padding:12px 0;border:0;min-width:0}.person-count legend{float:none;font-size:14px;margin:0 0 8px}.count-options{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}.count-options .choice{display:block;position:relative;padding:12px 0;text-align:center;margin:0;font-weight:700}.count-options input{position:absolute;opacity:0;width:1px;height:1px}.count-options .choice:has(input:checked){background:var(--pine);color:var(--cream)}.count-options .choice:has(input:focus-visible){outline:3px solid #dd8837;outline-offset:2px}.family-jump{display:block;margin-top:16px;color:var(--pine);font-weight:700;text-decoration:underline;font-size:13px}
 
 .arrival-notice{font-size:12px;font-weight:700;color:var(--red);margin-bottom:12px}
+
+.lookup-link{margin:12px 0;border:1px solid var(--pine);background:transparent}.lookup-link:hover{background:#e8eddd}.registration>.lookup-link{margin:0 28px 28px}#lookup-results dd{max-width:65%;text-align:right}#lookup-form button:disabled{opacity:.6}
