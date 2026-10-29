@@ -33,7 +33,7 @@ lookup.addEventListener('submit', event => {
   }, 30000);
 });
 window.addEventListener('message', event => {
-  if (!/^https:\/\/(?:[a-z0-9-]+\.)?script\.googleusercontent\.com$/.test(event.origin) && event.origin !== 'https://script.google.com') return;
+  if (!/^https:\/\/[a-z0-9-]+(?:-script|\.script)\.googleusercontent\.com$/.test(event.origin) && event.origin !== 'https://script.google.com') return;
   const data = event.data;
   if (!currentNonce || !data || data.type !== 'xmas-lookup' || data.nonce !== currentNonce) return;
   currentNonce = '';
