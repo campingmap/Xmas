@@ -69,7 +69,7 @@ registrationFields.forEach(question => {
     const label = element('label', { for: 'extra-cars' }, '추가 차량 수 · 기본 1대 외');
     const select = element('select', { id: 'extra-cars' });
     for (let n = 0; n <= 4; n++) select.append(element('option', { value: n }, n === 0 ? '차량추가 없음 (기본 차량 1대)' : `${n}대 (+${money(n * 10000)})`));
-    label.append(select); extra.append(label, element('p', { class: 'field-description' }, '추가 차량 정보와 계산 내역은 구글폼의 ‘하고 싶은 말’에 함께 저장됩니다.')); fields.append(extra);
+    label.append(select); extra.append(label, element('p', { class: 'field-description' }, '기본 차량 1대가 포함되어 있습니다. 추가 차량은 1대당 10,000원입니다.')); fields.append(extra);
   }
 });
 const lodgingOptions = registrationFields.find(q => q.entries[0].id === 1592266769).entries[0].options;
@@ -114,7 +114,7 @@ form.addEventListener('submit', event => {
   form.querySelector('[data-calculated-memo]')?.remove();
   form.append(element('input', { type: 'hidden', name: 'entry.710258770', 'data-calculated-memo': '', value: `${memo.value}\n\n[홈페이지 자동 계산]\n기본 ${money(p.base)} / 추가 성인 ${Math.max(0, Number(p.adults) - 2)}명·아동 ${Math.max(0, Number(p.children) - 2)}명: ${money(p.extraPeople * p.rate)} / 추가 차량 ${p.extraCars}대: ${money(p.extraCars * 10000)}\n입금 예정 금액: ${money(p.total)} (다자녀 면제 미반영)` }));
   submitting = true;
-  status.textContent = 'Google으로 제출 중입니다. Google의 제출 결과를 확인해 주세요.';
+  status.textContent = '신청서를 제출하고 있습니다. 잠시 후 접수 결과를 확인해 주세요.';
 });
 window.addEventListener('pageshow', () => {
   submitting = false;
