@@ -22,6 +22,7 @@ registrationFields.forEach(question => {
   const legend = element('legend', {}, question.title);
   if (required) legend.append(element('span', { class: 'required' }, ' *'));
   field.append(legend);
+  if (question.entries[0].id === 1912926423) field.append(element('p', { class: 'field-description' }, '입금자명과 동일하게 작성해 주세요. 관리자가 신청자와 입금 내역을 대조할 때 사용합니다.'));
   if (question.description) field.append(element('p', { class: 'field-description' }, question.description));
   const group = element('div');
   question.entries.forEach(entry => {
@@ -51,8 +52,8 @@ registrationFields.forEach(question => {
       const consent = [1833005978, 2000713890].includes(entry.id);
       entry.options.forEach(value => group.append(choice(entry, value, question.type === 2 || consent ? 'radio' : 'checkbox')));
     } else if (question.type === 10) {
-      const time = element('input', { type: 'time', id: 'arrival', required: '', 'aria-label': question.title });
-      group.append(time);
+      const time = element('input', { type: 'time', id: 'arrival', value: '12:00', required: '', 'aria-label': question.title });
+      group.append(element('p', { class: 'arrival-notice' }, '체크인은 오후 12시부터입니다. 도착 예정 시간의 오전·오후를 확인해 주세요.'), time);
       ['hour', 'minute'].forEach(part => group.append(element('input', { type: 'hidden', name: `${name}_${part}` })));
     } else {
       const input = element(question.type === 1 ? 'textarea' : 'input', { ...attrs, 'aria-label': question.title });
