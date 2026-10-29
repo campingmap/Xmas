@@ -28,7 +28,19 @@ registrationFields.forEach(question => {
     const name = `entry.${entry.id}`;
     const attrs = { name, id: name };
     if (entry.required) attrs.required = '';
-    if (question.type === 7 || question.type === 3) {
+    if (question.type === 7) {
+      field.id = 'family-size';
+      field.classList.add('family-field');
+      const row = element('fieldset', { class: 'person-count' });
+      row.append(element('legend', {}, entry.row));
+      const options = element('div', { class: 'count-options' });
+      entry.options.forEach(value => {
+        const label = choice(entry, value, 'radio');
+        label.querySelector('span').textContent = `${value}명`;
+        options.append(label);
+      });
+      row.append(options); group.append(row);
+    } else if (question.type === 3) {
       const label = element('label', { for: name }, entry.row);
       const select = element('select', { ...attrs, 'aria-label': entry.row || question.title });
       select.append(element('option', { value: '' }, '선택해 주세요'));
