@@ -16,6 +16,8 @@ function finishLookup(message) {
 }
 lookup.addEventListener('submit', event => {
   results.replaceChildren();
+  document.getElementById('lookup-payment').hidden = true;
+  document.getElementById('lookup-account-status').textContent = '';
   if (!LOOKUP_ENDPOINT) {
     event.preventDefault();
     status.textContent = '신청 내역 조회 연결을 준비 중입니다. 운영진에게 문의해 주세요.';
@@ -39,6 +41,7 @@ window.addEventListener('message', event => {
   currentNonce = '';
   if (!data.ok || !Array.isArray(data.records)) { finishLookup('조회할 수 없습니다. 잠시 후 다시 시도해 주세요.'); return; }
   finishLookup(data.records.length ? `${data.records.length}건의 신청 내역을 확인했습니다.` : data.message);
+  document.getElementById('lookup-payment').hidden = data.records.length === 0;
   data.records.forEach(record => {
     const card = document.createElement('section'); card.className = 'registration-note';
     const heading = document.createElement('h2'); heading.style.fontSize = '20px'; heading.textContent = record.status; card.append(heading);
@@ -48,4 +51,11 @@ window.addEventListener('message', event => {
     });
     card.append(list); const note = document.createElement('p'); note.textContent = '신청 접수 내역입니다. 입금 확인 및 참가 확정 여부는 운영진에게 문의해 주세요.'; card.append(note); results.append(card);
   });
+});
+
+document.getElementById('lookup-account-info').textContent = `${CAMP_PAYMENT.bank} · ${CAMP_PAYMENT.holder}\n${CAMP_PAYMENT.account}`;
+document.getElementById('copy-lookup-account').addEventListener('click', async () => {
+  const accountStatus = document.getElementById('lookup-account-status');
+  try { await navigator.clipboard.writeText(CAMP_PAYMENT.account); accountStatus.textContent = '계좌번호를 복사했습니다.'; }
+  catch { accountStatus.textContent = `계좌번호 ${CAMP_PAYMENT.account}을 직접 복사해 주세요.`; }
 });
