@@ -49,7 +49,12 @@ window.addEventListener('message', event => {
     [['신청 일시',record.date],['숙소',record.lodging],['추가 차량',record.extraVehicles || '미기재'],['가족 인원',`성인 ${record.adults}명 · 아동 ${record.children}명`],['도착 예정',record.arrival],['입금 예정 금액',record.amount]].forEach(([label,value]) => {
       const row = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = label; const dd = document.createElement('dd'); dd.textContent = value; row.append(dt,dd); list.append(row);
     });
-    card.append(list); const note = document.createElement('p'); note.textContent = record.paymentConfirmed ? '입금 문자와 신청 정보가 일치하여 입금 확인되었습니다.' : '신청 접수 내역입니다. 입금 확인 전에는 참가가 확정되지 않습니다.'; card.append(note); results.append(card);
+    if (record.paidAmount > 0) {
+      const paid = document.createElement('p');
+      paid.textContent = `누적 입금 ${Number(record.paidAmount).toLocaleString('ko-KR')}원 · ${record.paymentCount || 1}회 입금${record.remainingAmount > 0 ? ` · 추가 입금할 금액 ${Number(record.remainingAmount).toLocaleString('ko-KR')}원` : ''}`;
+      card.append(paid);
+    }
+    card.append(list); const note = document.createElement('p'); note.textContent = record.paymentConfirmed ? '입금 문자와 신청 정보가 일치하여 입금 확인되었습니다.' : record.remainingAmount > 0 ? '부족한 금액을 추가 입금해 주세요. 합산 금액 확인 후 참가가 확정됩니다.' : '신청 접수 내역입니다. 입금 확인 전에는 참가가 확정되지 않습니다.'; card.append(note); results.append(card);
   });
 });
 
