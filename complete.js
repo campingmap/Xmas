@@ -3,7 +3,7 @@ let receipt;
 try { receipt = JSON.parse(sessionStorage.getItem('xmas-confirmed-receipt')); } catch {}
 if (receipt && receipt.reference && Array.isArray(receipt.details)) {
   document.getElementById('completion-title').textContent = '신청이 완료되었습니다.';
-  document.getElementById('completion-intro').textContent = '함께 반짝일 겨울을 기다릴게요. 아래 신청 내역과 입금 예정 금액을 확인해 주세요.';
+  document.getElementById('completion-intro').textContent = '함께 반짝일 겨울을 기다릴게요. 아래 신청 내역과 입금 예정 금액을 확인해 주세요. 신청 확인 메일은 순차 발송되며, 보이지 않으면 스팸함도 확인해 주세요.';
   document.getElementById('completed-content').hidden = false;
   document.getElementById('completed-amount').textContent = receipt.amount;
   document.getElementById('completed-date').textContent = `접수 일시 · ${receipt.date}`;

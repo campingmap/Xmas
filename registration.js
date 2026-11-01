@@ -22,7 +22,7 @@ registrationFields.forEach(question => {
   const legend = element('legend', {}, question.title);
   if (required) legend.append(element('span', { class: 'required' }, ' *'));
   field.append(legend);
-  if (question.entries[0].id === 1912926423) field.append(element('p', { class: 'field-description' }, '입금자명과 동일하게 작성해 주세요. 관리자가 신청자와 입금 내역을 대조할 때 사용합니다.'));
+  if (question.entries[0].id === 1912926423 && !question.description) field.append(element('p', { class: 'field-description' }, '입금자명과 동일하게 작성해 주세요. 관리자가 신청자와 입금 내역을 대조할 때 사용합니다.'));
   if (question.description) field.append(element('p', { class: 'field-description' }, question.description));
   const group = element('div');
   question.entries.forEach(entry => {
@@ -58,15 +58,17 @@ registrationFields.forEach(question => {
     } else {
       const input = element(question.type === 1 ? 'textarea' : 'input', { ...attrs, 'aria-label': question.title });
       if (question.type !== 1) input.type = entry.id === 1239222796 ? 'tel' : 'text';
+      const limits = {196725166:100,1912926423:80,372074511:80,1005991624:300,710258770:1500};
+      if (limits[entry.id]) input.maxLength = limits[entry.id];
       if (entry.id === 1912926423) input.autocomplete = 'name';
       if (entry.id === 1244916950) {
-        input.type = 'email'; input.autocomplete = 'email'; input.inputMode = 'email'; input.maxLength = 254; input.placeholder = 'name@naver.com';
+        input.type = 'email'; input.autocomplete = 'email'; input.inputMode = 'email'; input.maxLength = 254; input.pattern = '[^\\s@]+@[^\\s@]+\\.[^\\s@]+'; input.placeholder = 'name@naver.com';
         input.addEventListener('blur', () => { input.value = input.value.trim(); });
       }
       if (entry.id === 1239222796) {
         input.autocomplete = 'tel'; input.inputMode = 'numeric'; input.pattern = '[0-9]{10,11}'; input.maxLength = 11; input.minLength = 10; input.placeholder = '01012345678';
         input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 11); });
-        group.append(element('p', { class: 'field-description' }, '연락처는 하이픈(-) 없이 숫자만 입력해 주세요. 예: 01012345678'));
+        if (!question.description) group.append(element('p', { class: 'field-description' }, '연락처는 하이픈(-) 없이 숫자만 입력해 주세요. 예: 01012345678'));
       }
       group.append(input);
     }
@@ -104,7 +106,7 @@ function updatePrice() {
       const row = element('div'); row.append(element('dt', {}, title), element('dd', {}, amount)); lines.append(row);
     });
   }
-  document.getElementById('total').textContent = p.index < 0 ? '숙소 선택 필요' : p.adults === '' || p.children === '' ? '인원 선택 필요' : money(p.total);
+  document.getElementById('total').textContent = p.index < 0 ? '숙소 선택 필요' : p.adults == null || p.children == null || p.adults === '' || p.children === '' ? '인원 선택 필요' : money(p.total);
   document.getElementById('price-warning').textContent = '모든 숙소는 성인 2명 + 아동 2명 기준입니다. 각각 2명을 넘는 인원에 추가 요금을 계산합니다. 다자녀 한 가족 면제는 추후 적용 예정이며 현재 금액에는 반영되지 않습니다.';
 }
 form.addEventListener('input', updatePrice);
@@ -116,7 +118,7 @@ form.addEventListener('submit', event => {
   const p = calculate();
   const reference = crypto.randomUUID();
   if (Number(p.adults) + Number(p.children) === 0) { event.preventDefault(); status.textContent = '참가 인원을 1명 이상 선택해 주세요.'; return; }
-  if (new FormData(form).get('entry.2000713890') !== '동의') { event.preventDefault(); status.textContent = '원본 신청서 안내에 따라 촬영 비동의 시 참가 신청을 진행할 수 없습니다.'; return; }
+  if (new FormData(form).get('entry.2000713890') !== '동의') { event.preventDefault(); status.textContent = '촬영 비동의 시 참가 신청을 진행할 수 없습니다.'; return; }
   const [hour, minute] = document.getElementById('arrival').value.split(':');
   form.elements.namedItem('entry.782972763_hour').value = String(Number(hour));
   form.elements.namedItem('entry.782972763_minute').value = String(Number(minute));
@@ -158,11 +160,10 @@ function checkConfirmation() {
   if (!verification) return;
   if (++verification.attempts > 8) { confirmationDelayed(); return; }
   queryNonce = crypto.randomUUID();
-  const request = element('form', { action: CAMP_LOOKUP_URL, method: 'post', target: 'registration-verify-frame', hidden: '' });
-  Object.entries({name: verification.name, phone: verification.phone, nonce: queryNonce}).forEach(([name,value]) => request.append(element('input',{type:'hidden',name,value})));
-  document.body.append(request); request.submit(); request.remove();
+  const nonce=queryNonce;
   clearTimeout(verificationTimeout);
-  verificationTimeout = setTimeout(confirmationDelayed, 20000);
+  verificationTimeout=setTimeout(confirmationDelayed,20000);
+  fetch(CAMP_LOOKUP_URL,{method:'POST',body:new URLSearchParams({name:verification.name,phone:verification.phone,nonce,transport:'json'}),credentials:'omit'}).then(response=>{if(!response.ok)throw new Error('verification_connection');return response.json();}).then(receiveConfirmation).catch(()=>{if(queryNonce===nonce)confirmationDelayed();});
 }
 function confirmationDelayed() {
   clearTimeout(verificationTimeout); queryNonce = '';
@@ -175,7 +176,9 @@ function confirmationDelayed() {
 }
 window.addEventListener('message', event => {
   if (!/^https:\/\/[a-z0-9-]+(?:-script|\.script)\.googleusercontent\.com$/.test(event.origin) && event.origin !== 'https://script.google.com') return;
-  const data = event.data;
+  receiveConfirmation(event.data);
+});
+function receiveConfirmation(data) {
   if (!verification || !queryNonce || !data || data.type !== 'xmas-lookup' || data.nonce !== queryNonce) return;
   clearTimeout(verificationTimeout); queryNonce = '';
   if (!data.ok || !Array.isArray(data.records)) { confirmationDelayed(); return; }
@@ -184,4 +187,4 @@ window.addEventListener('message', event => {
   try { sessionStorage.setItem('xmas-confirmed-receipt', JSON.stringify({...saved, details: verification.details})); }
   catch { document.getElementById('form-status').textContent='신청이 접수되었습니다. 이 기기에서 완료 내역을 보관할 수 없어 신청 내역 확인하기에서 조회해 주세요.'; return; }
   location.assign('complete.html');
-});
+}
