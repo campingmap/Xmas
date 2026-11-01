@@ -11,17 +11,18 @@ function editRpc(operation, values = {}) {
     const nonce = crypto.randomUUID();
     const timer = setTimeout(() => { editRequests.delete(nonce); reject(new Error('응답이 지연됩니다. 저장을 요청했다면 다시 조회해 반영 여부를 먼저 확인해 주세요.')); }, 45000);
     editRequests.set(nonce, {resolve,reject,timer});
-    const request = editNode('form',{method:'post',action:CAMP_LOOKUP_URL,target:editFrame.name,hidden:''});
-    Object.entries({action:'application-edit',operation,nonce,...values}).forEach(([name,value]) => request.append(editNode('input',{type:'hidden',name,value:String(value)})));
-    document.body.append(request); request.submit(); request.remove();
+    fetch(CAMP_LOOKUP_URL,{method:'POST',body:new URLSearchParams({action:'application-edit',operation,nonce,transport:'json',...values}),credentials:'omit'}).then(response=>{if(!response.ok)throw new Error('edit_connection_failed');return response.json();}).then(data=>receiveEditResponse(data)).catch(()=>{const pending=editRequests.get(nonce);if(!pending)return;clearTimeout(pending.timer);editRequests.delete(nonce);pending.reject(new Error('연결에 실패했습니다. 저장을 요청했다면 다시 조회해 반영 여부를 확인해 주세요.'));});
   });
 }
 window.addEventListener('message', event => {
   if (!/^https:\/\/[a-z0-9-]+(?:-script|\.script)\.googleusercontent\.com$/.test(event.origin) && event.origin !== 'https://script.google.com') return;
-  const data=event.data; if (!data || data.type !== 'xmas-edit' || !editRequests.has(data.nonce)) return;
+  receiveEditResponse(event.data);
+});
+function receiveEditResponse(data){
+  if (!data || data.type !== 'xmas-edit' || !editRequests.has(data.nonce)) return;
   const pending=editRequests.get(data.nonce); clearTimeout(pending.timer); editRequests.delete(data.nonce);
   if (data.ok) pending.resolve(data); else pending.reject(new Error(data.message || '처리할 수 없습니다. 잠시 후 다시 시도해 주세요.'));
-});
+}
 function attachApplicationEditor(card, record, identity) {
   if (!record.editHandle) return;
   if (!record.canEdit) {

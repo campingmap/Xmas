@@ -15,6 +15,7 @@ function finishLookup(message) {
   status.textContent = message;
 }
 lookup.addEventListener('submit', event => {
+  event.preventDefault();
   results.replaceChildren();
   document.getElementById('lookup-payment').hidden = true;
   document.getElementById('lookup-account-status').textContent = '';
@@ -29,6 +30,8 @@ lookup.addEventListener('submit', event => {
   lookup.querySelector('button').disabled = true;
   lookup.setAttribute('aria-busy', 'true');
   status.textContent = '신청 내역을 확인하고 있습니다.';
+  const nonce=currentNonce;
+  fetch(LOOKUP_ENDPOINT,{method:'POST',body:new URLSearchParams({name:lookup.elements.name.value.trim(),phone:phone.value,nonce,transport:'json'}),credentials:'omit'}).then(response=>{if(!response.ok)throw new Error('lookup_failed');return response.json();}).then(data=>receiveLookup(data)).catch(()=>{if(currentNonce===nonce)finishLookup('조회 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.');});
   lookupTimer = setTimeout(() => {
     currentNonce = '';
     finishLookup('조회 시간이 초과되었습니다. 잠시 후 다시 확인해 주세요.');
@@ -36,7 +39,9 @@ lookup.addEventListener('submit', event => {
 });
 window.addEventListener('message', event => {
   if (!/^https:\/\/[a-z0-9-]+(?:-script|\.script)\.googleusercontent\.com$/.test(event.origin) && event.origin !== 'https://script.google.com') return;
-  const data = event.data;
+  receiveLookup(event.data);
+});
+function receiveLookup(data) {
   if (!currentNonce || !data || data.type !== 'xmas-lookup' || data.nonce !== currentNonce) return;
   currentNonce = '';
   if (!data.ok || !Array.isArray(data.records)) { finishLookup('조회할 수 없습니다. 잠시 후 다시 시도해 주세요.'); return; }
@@ -59,7 +64,7 @@ window.addEventListener('message', event => {
     if(record.editRevision){card.append(Object.assign(document.createElement('p'),{className:'fine-print',textContent:'신청 수정 '+record.editRevision+'회 · 최신 내용'}));}
     attachApplicationEditor(card,record,{name:lookup.elements.name.value.trim(),phone:phone.value}); results.append(card);
   });
-});
+}
 
 document.getElementById('lookup-account-info').textContent = `${CAMP_PAYMENT.bank} · ${CAMP_PAYMENT.holder}\n${CAMP_PAYMENT.account}`;
 document.getElementById('copy-lookup-account').addEventListener('click', async () => {
