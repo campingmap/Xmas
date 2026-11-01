@@ -49,7 +49,7 @@ window.addEventListener('message', event => {
     [['신청 일시',record.date],['숙소',record.lodging],['가족 인원',`성인 ${record.adults}명 · 아동 ${record.children}명`],['도착 예정',record.arrival],['입금 예정 금액',record.amount]].forEach(([label,value]) => {
       const row = document.createElement('div'); const dt = document.createElement('dt'); dt.textContent = label; const dd = document.createElement('dd'); dd.textContent = value; row.append(dt,dd); list.append(row);
     });
-    card.append(list); const note = document.createElement('p'); note.textContent = '신청 접수 내역입니다. 입금 확인 및 참가 확정 여부는 운영진에게 문의해 주세요.'; card.append(note); results.append(card);
+    card.append(list); const note = document.createElement('p'); note.textContent = record.paymentConfirmed ? '입금 문자와 신청 정보가 일치하여 입금 확인되었습니다.' : '신청 접수 내역입니다. 입금 확인 전에는 참가가 확정되지 않습니다.'; card.append(note); results.append(card);
   });
 });
 
