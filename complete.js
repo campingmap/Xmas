@@ -12,7 +12,7 @@ if (receipt && receipt.reference && Array.isArray(receipt.details)) {
   receipt.details.forEach(detail => {
     const row = document.createElement('div');
     const dt = document.createElement('dt'); dt.textContent = detail.label;
-    const dd = document.createElement('dd'); dd.textContent = Array.isArray(detail.value) ? detail.value.join(' · ') : String(detail.value || '미작성');
+    const dd = document.createElement('dd'); dd.textContent = (Array.isArray(detail.value) ? detail.value.join(' · ') : String(detail.value || '미작성')).replace(/잔디블록/g, '블록잔디');
     row.append(dt,dd); list.append(row);
   });
 }
