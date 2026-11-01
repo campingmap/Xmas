@@ -71,8 +71,11 @@ registrationFields.forEach(question => {
   if (question.entries[0].id === 372074511) {
     const extra = element('div', { class: 'form-field' });
     const label = element('label', { for: 'extra-cars' }, '추가 차량 수 · 기본 1대 외');
-    const select = element('select', { id: 'extra-cars' });
-    for (let n = 0; n <= 2; n++) select.append(element('option', { value: n }, n === 0 ? '차량추가 없음 (기본 차량 1대)' : `${n}대 추가 (총 ${n + 1}대)`));
+    const select = element('select', { id: 'extra-cars', name: 'entry.126976328', required: '' });
+    for (let n = 0; n <= 2; n++) {
+      const label = n === 0 ? '차량추가 없음 (기본 차량 1대)' : `${n}대 추가 (총 ${n + 1}대)`;
+      select.append(element('option', { value: label }, label));
+    }
     label.append(select); extra.append(label, element('p', { class: 'field-description' }, '기본 차량 1대가 포함되어 있습니다. 추가 차량은 1대당 10,000원입니다.')); fields.append(extra);
   }
 });
@@ -85,7 +88,7 @@ function calculate() {
   const children = data.get('entry.1724175323');
   const extraPeople = Math.max(0, Number(adults) - 2) + Math.max(0, Number(children) - 2);
   const rate = index >= 3 ? 20000 : 10000;
-  const extraCars = Number(document.getElementById('extra-cars').value);
+  const extraCars = document.getElementById('extra-cars').selectedIndex;
   const base = basePrices[index] || 0;
   return { index, adults, children, extraPeople, rate, extraCars, base, total: base + extraPeople * rate + extraCars * 10000 };
 }
@@ -115,7 +118,7 @@ form.addEventListener('submit', event => {
   form.elements.namedItem('entry.782972763_minute').value = String(Number(minute));
   const submittedData = new FormData(form);
   const submittedDetails = registrationFields.map(question => ({label: question.title, value: question.type === 10 ? document.getElementById('arrival').value : question.entries.map(entry => { const values = submittedData.getAll(`entry.${entry.id}`); return entry.row ? `${entry.row}: ${values.join(' · ')}` : values.join(' · '); }).join(' · ') || '미작성'}));
-  submittedDetails.push({label: '추가 차량', value: `${p.extraCars}대`});
+  submittedDetails.push({label: '추가 차량', value: document.getElementById('extra-cars').value});
   const memo = form.elements.namedItem('entry.710258770');
   // A separate hidden value preserves the user's memo if navigation fails or they return.
   memo.disabled = true;
