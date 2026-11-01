@@ -72,7 +72,7 @@ registrationFields.forEach(question => {
     const extra = element('div', { class: 'form-field' });
     const label = element('label', { for: 'extra-cars' }, '추가 차량 수 · 기본 1대 외');
     const select = element('select', { id: 'extra-cars' });
-    for (let n = 0; n <= 4; n++) select.append(element('option', { value: n }, n === 0 ? '차량추가 없음 (기본 차량 1대)' : `${n}대 (+${money(n * 10000)})`));
+    for (let n = 0; n <= 2; n++) select.append(element('option', { value: n }, n === 0 ? '차량추가 없음 (기본 차량 1대)' : `${n}대 (+${money(n * 10000)})`));
     label.append(select); extra.append(label, element('p', { class: 'field-description' }, '기본 차량 1대가 포함되어 있습니다. 추가 차량은 1대당 10,000원입니다.')); fields.append(extra);
   }
 });
