@@ -54,7 +54,10 @@ window.addEventListener('message', event => {
       paid.textContent = `누적 입금 ${Number(record.paidAmount).toLocaleString('ko-KR')}원 · ${record.paymentCount || 1}회 입금${record.remainingAmount > 0 ? ` · 추가 입금할 금액 ${Number(record.remainingAmount).toLocaleString('ko-KR')}원` : ''}`;
       card.append(paid);
     }
-    card.append(list); const note = document.createElement('p'); note.textContent = record.paymentConfirmed ? '입금 문자와 신청 정보가 일치하여 입금 확인되었습니다.' : record.remainingAmount > 0 ? '부족한 금액을 추가 입금해 주세요. 합산 금액 확인 후 참가가 확정됩니다.' : '신청 접수 내역입니다. 입금 확인 전에는 참가가 확정되지 않습니다.'; card.append(note); results.append(card);
+    card.append(list); const note = document.createElement('p'); note.textContent = record.paymentConfirmed ? '입금 문자와 신청 정보가 일치하여 입금 확인되었습니다.' : record.remainingAmount > 0 ? '부족한 금액을 추가 입금해 주세요. 합산 금액 확인 후 참가가 확정됩니다.' : '신청 접수 내역입니다. 입금 확인 전에는 참가가 확정되지 않습니다.'; card.append(note);
+    if(record.refundAmount>0){note.textContent='신청 변경으로 '+Number(record.refundAmount).toLocaleString('ko-KR')+'원의 환불 확인이 필요합니다. 운영진이 확인 후 처리합니다.';}
+    if(record.editRevision){card.append(Object.assign(document.createElement('p'),{className:'fine-print',textContent:'신청 수정 '+record.editRevision+'회 · 최신 내용'}));}
+    attachApplicationEditor(card,record,{name:lookup.elements.name.value.trim(),phone:phone.value}); results.append(card);
   });
 });
 
