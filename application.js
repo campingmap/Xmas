@@ -20,7 +20,7 @@ lookup.addEventListener('submit', event => {
   document.getElementById('lookup-account-status').textContent = '';
   if (!LOOKUP_ENDPOINT) {
     event.preventDefault();
-    status.textContent = '신청 내역 조회 연결을 준비 중입니다. 운영진에게 문의해 주세요.';
+    status.textContent = '신청 내역 조회 연결을 준비 중입니다. 아래 호캠프 Q&A 게시판으로 문의해 주세요.';
     return;
   }
   currentNonce = crypto.randomUUID();
