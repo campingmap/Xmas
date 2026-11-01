@@ -77,7 +77,7 @@ registrationFields.forEach(question => {
   }
 });
 const lodgingOptions = registrationFields.find(q => q.entries[0].id === 1592266769).entries[0].options;
-const basePrices = [180000, 180000, 190000, 220000, 480000];
+const basePrices = [180000, 180000, 190000, 480000];
 function calculate() {
   const data = new FormData(form);
   const index = lodgingOptions.indexOf(data.get('entry.1592266769'));
