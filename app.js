@@ -37,3 +37,58 @@ posterDialog.addEventListener('close', () => {
   document.body.classList.remove('dialog-open');
   posterTrigger?.focus({ preventScroll: true });
 });
+
+const carol = document.getElementById('camp-carol');
+const musicToggle = document.getElementById('music-toggle');
+const musicLabel = document.getElementById('music-label');
+const musicStatus = document.getElementById('music-status');
+const musicPreference = 'xmas-carol-enabled';
+let musicEnabled = true;
+try { musicEnabled = localStorage.getItem(musicPreference) !== 'off'; } catch {}
+carol.volume = 0.25;
+musicToggle.hidden = false;
+function updateMusicControl() {
+  const playing = !carol.paused && !carol.error;
+  musicToggle.setAttribute('aria-pressed', String(playing));
+  musicToggle.setAttribute('aria-label', playing ? '캐롤 배경음악 끄기' : '캐롤 배경음악 재생');
+  musicLabel.textContent = playing ? '캐롤 끄기' : '캐롤 재생';
+}
+async function playCarol() {
+  if (!musicEnabled || !carol.paused) return;
+  try {
+    await carol.play();
+    // A pending play request may finish after the visitor has turned music off.
+    if (!musicEnabled) carol.pause();
+  } catch (error) {
+    musicStatus.textContent = error.name === 'NotAllowedError'
+      ? '화면을 터치하거나 캐롤 재생 버튼을 누르면 음악이 시작됩니다.'
+      : '음악을 불러오지 못했습니다. 캐롤 재생 버튼으로 다시 시도해 주세요.';
+  }
+  updateMusicControl();
+}
+function startCarolOnInteraction(event) {
+  if (event.target instanceof Element && event.target.closest('#music-toggle')) return;
+  if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return;
+  void playCarol();
+}
+musicToggle.addEventListener('click', () => {
+  musicEnabled = carol.paused;
+  try { localStorage.setItem(musicPreference, musicEnabled ? 'on' : 'off'); } catch {}
+  if (musicEnabled) void playCarol();
+  else carol.pause();
+  updateMusicControl();
+});
+carol.addEventListener('playing', () => {
+  musicStatus.textContent = '캐롤 배경음악이 재생 중입니다.';
+  updateMusicControl();
+});
+carol.addEventListener('pause', updateMusicControl);
+carol.addEventListener('error', () => {
+  musicStatus.textContent = '음악을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.';
+  updateMusicControl();
+});
+document.addEventListener('click', startCarolOnInteraction);
+document.addEventListener('keydown', startCarolOnInteraction);
+updateMusicControl();
+carol.autoplay = musicEnabled;
+if (musicEnabled) void playCarol();
