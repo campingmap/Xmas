@@ -13,7 +13,12 @@ function choice(entry, value, type) {
   const input = element('input', { type, name: `entry.${entry.id}`, value });
   // Consent choices are mutually exclusive; preserve their exact Google values.
   if (entry.required && type === 'radio') input.required = true;
-  label.append(input, element('span', {}, value));
+  const text = element('span', {}, value);
+  if (entry.id === 1592266769 && value === '캠핑카 / 카라반 / 캠핑 트레일러') {
+    text.textContent = `${value} 사이트`;
+    text.append(element('small', {class: 'choice-note'}, '숙소가 아닌 캠핑 사이트입니다. 개인 캠핑카·카라반·캠핑 트레일러를 가져오시는 분만 신청할 수 있습니다.'));
+  }
+  label.append(input, text);
   return label;
 }
 registrationFields.forEach(question => {
