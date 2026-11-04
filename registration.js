@@ -120,13 +120,63 @@ function updatePrice() {
 form.addEventListener('input', updatePrice);
 form.addEventListener('change', updatePrice);
 let submitting = false;
-form.addEventListener('submit', event => {
+let submissionAttempt = 0;
+async function checkExistingApplication(name, phone) {
+  const nonce = crypto.randomUUID();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000);
+  try {
+    const response = await fetch(CAMP_LOOKUP_URL, {
+      method: 'POST', credentials: 'omit', signal: controller.signal,
+      body: new URLSearchParams({action: 'registration-check', name, phone, nonce, transport: 'json'})
+    });
+    if (!response.ok) throw new Error('duplicate_check_failed');
+    const result = await response.json();
+    if (!result || result.type !== 'xmas-lookup' || result.nonce !== nonce || !result.ok || typeof result.exists !== 'boolean') throw new Error('duplicate_check_failed');
+    return result.exists;
+  } finally { clearTimeout(timer); }
+}
+function releaseSubmission() {
+  submitting = false;
+  form.querySelector('[type=submit]').disabled = false;
+  form.removeAttribute('aria-busy');
+}
+form.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (submitting) return;
   const status = document.getElementById('form-status'); status.textContent = '';
-  if (submitting) { event.preventDefault(); return; }
   const p = calculate();
+  if (Number(p.adults) + Number(p.children) === 0) { status.textContent = '참가 인원을 1명 이상 선택해 주세요.'; return; }
+  if (new FormData(form).get('entry.2000713890') !== '동의') { status.textContent = '촬영 비동의 시 참가 신청을 진행할 수 없습니다.'; return; }
+  const name = form.elements.namedItem('entry.1912926423').value.trim();
+  const phone = form.elements.namedItem('entry.1239222796').value;
+  const attempt = ++submissionAttempt;
+  submitting = true;
+  form.querySelector('[type=submit]').disabled = true;
+  form.setAttribute('aria-busy', 'true');
+  status.textContent = '이미 접수된 신청이 있는지 확인하고 있습니다. 잠시만 기다려 주세요.';
+  try {
+    const existing = await checkExistingApplication(name, phone);
+    if (attempt !== submissionAttempt) return;
+    if (existing) {
+      status.textContent = '같은 성함과 연락처로 이미 접수된 신청이 있습니다. 새로 제출하지 마시고 기존 신청을 조회한 뒤 수정해 주세요. 별도 가족의 추가 신청이 필요하면 호캠프 Q&A 게시판으로 문의해 주세요.';
+      if (!document.getElementById('existing-application-link')) status.after(element('a', {id:'existing-application-link', class:'button lookup-link', href:'application.html'}, '기존 신청 확인·수정하기 ↗'));
+      releaseSubmission();
+      return;
+    }
+  } catch {
+    if (attempt !== submissionAttempt) return;
+    status.textContent = '기존 신청 여부를 확인하지 못해 아직 제출하지 않았습니다. 입력 내용은 그대로 유지됩니다. 잠시 후 다시 제출해 주세요.';
+    releaseSubmission();
+    return;
+  }
+  // Recheck after the asynchronous lookup: the participant may have edited a field.
+  releaseSubmission();
+  if (!form.reportValidity()) { status.textContent = '입력 내용을 확인한 후 다시 제출해 주세요.'; return; }
+  if (name !== form.elements.namedItem('entry.1912926423').value.trim() || phone !== form.elements.namedItem('entry.1239222796').value) { status.textContent = '성함 또는 연락처가 변경되었습니다. 다시 제출해 신청 여부를 확인해 주세요.'; return; }
+  const currentPrice = calculate();
+  if (Number(currentPrice.adults) + Number(currentPrice.children) === 0 || new FormData(form).get('entry.2000713890') !== '동의') { status.textContent = '참가 인원과 촬영 동의 항목을 확인해 주세요.'; return; }
   const reference = crypto.randomUUID();
-  if (Number(p.adults) + Number(p.children) === 0) { event.preventDefault(); status.textContent = '참가 인원을 1명 이상 선택해 주세요.'; return; }
-  if (new FormData(form).get('entry.2000713890') !== '동의') { event.preventDefault(); status.textContent = '촬영 비동의 시 참가 신청을 진행할 수 없습니다.'; return; }
   const [hour, minute] = document.getElementById('arrival').value.split(':');
   form.elements.namedItem('entry.782972763_hour').value = String(Number(hour));
   form.elements.namedItem('entry.782972763_minute').value = String(Number(minute));
@@ -137,15 +187,18 @@ form.addEventListener('submit', event => {
   // A separate hidden value preserves the user's memo if navigation fails or they return.
   memo.disabled = true;
   form.querySelector('[data-calculated-memo]')?.remove();
-  form.append(element('input', { type: 'hidden', name: 'entry.710258770', 'data-calculated-memo': '', value: `${memo.value}\n\n[홈페이지 자동 계산]\n기본 ${money(p.base)} / 추가 성인 ${p.extraAdults}명·아동 ${p.extraChildren}명: ${money(p.extraPeople * p.rate)} / 추가 차량 ${p.extraCars}대: ${money(p.extraCars * 10000)}\n입금 예정 금액: ${money(p.total)} (다자녀 면제 미반영)\n[접수 확인 코드: ${reference}]` }));
+  form.append(element('input', { type: 'hidden', name: 'entry.710258770', 'data-calculated-memo': '', value: `${memo.value}\n\n[홈페이지 자동 계산]\n기본 ${money(currentPrice.base)} / 추가 성인 ${currentPrice.extraAdults}명·아동 ${currentPrice.extraChildren}명: ${money(currentPrice.extraPeople * currentPrice.rate)} / 추가 차량 ${currentPrice.extraCars}대: ${money(currentPrice.extraCars * 10000)}\n입금 예정 금액: ${money(currentPrice.total)} (다자녀 면제 미반영)\n[접수 확인 코드: ${reference}]` }));
   submitting = true;
   form.querySelector('[type=submit]').disabled = true;
-  startConfirmation(reference, form.elements.namedItem('entry.1912926423').value.trim(), form.elements.namedItem('entry.1239222796').value, submittedDetails);
+  form.setAttribute('aria-busy', 'true');
+  document.getElementById('existing-application-link')?.remove();
+  startConfirmation(reference, name, phone, submittedDetails);
   status.textContent = '신청서를 제출하고 있습니다. 잠시 후 접수 결과를 확인해 주세요.';
+  HTMLFormElement.prototype.submit.call(form);
 });
 window.addEventListener('pageshow', () => {
-  submitting = false;
-  form.querySelector('[type=submit]').disabled = false;
+  ++submissionAttempt;
+  releaseSubmission();
   form.querySelector('[data-calculated-memo]')?.remove();
   form.elements.namedItem('entry.710258770').disabled = false;
   document.getElementById('form-status').textContent = '';
