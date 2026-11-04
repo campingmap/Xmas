@@ -121,6 +121,25 @@ form.addEventListener('input', updatePrice);
 form.addEventListener('change', updatePrice);
 let submitting = false;
 let submissionAttempt = 0;
+const submitButton = form.querySelector('[type=submit]');
+const submitButtonLabel = submitButton.textContent;
+const pendingReceiptKey = 'xmas-pending-receipt';
+let pendingReceipt = null;
+function lockSubmission(label) {
+  submitting = true;
+  submitButton.disabled = true;
+  submitButton.textContent = label;
+  submitButton.setAttribute('aria-busy', 'true');
+  form.setAttribute('aria-busy', 'true');
+}
+function readPendingReceipt() {
+  if (pendingReceipt) return pendingReceipt;
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(pendingReceiptKey) || 'null');
+    if (saved && typeof saved.reference === 'string' && typeof saved.name === 'string' && /^\d{10,11}$/.test(saved.phone) && Array.isArray(saved.details)) pendingReceipt = saved;
+  } catch { /* The in-memory lock still protects this page when storage is unavailable. */ }
+  return pendingReceipt;
+}
 async function checkExistingApplication(name, phone) {
   const nonce = crypto.randomUUID();
   const controller = new AbortController();
@@ -138,12 +157,14 @@ async function checkExistingApplication(name, phone) {
 }
 function releaseSubmission() {
   submitting = false;
-  form.querySelector('[type=submit]').disabled = false;
+  submitButton.disabled = false;
+  submitButton.textContent = submitButtonLabel;
+  submitButton.removeAttribute('aria-busy');
   form.removeAttribute('aria-busy');
 }
 form.addEventListener('submit', async event => {
   event.preventDefault();
-  if (submitting) return;
+  if (submitting || readPendingReceipt()) return;
   const status = document.getElementById('form-status'); status.textContent = '';
   const p = calculate();
   if (Number(p.adults) + Number(p.children) === 0) { status.textContent = '참가 인원을 1명 이상 선택해 주세요.'; return; }
@@ -151,9 +172,7 @@ form.addEventListener('submit', async event => {
   const name = form.elements.namedItem('entry.1912926423').value.trim();
   const phone = form.elements.namedItem('entry.1239222796').value;
   const attempt = ++submissionAttempt;
-  submitting = true;
-  form.querySelector('[type=submit]').disabled = true;
-  form.setAttribute('aria-busy', 'true');
+  lockSubmission('신청 처리 중…');
   status.textContent = '이미 접수된 신청이 있는지 확인하고 있습니다. 잠시만 기다려 주세요.';
   try {
     const existing = await checkExistingApplication(name, phone);
@@ -171,11 +190,10 @@ form.addEventListener('submit', async event => {
     return;
   }
   // Recheck after the asynchronous lookup: the participant may have edited a field.
-  releaseSubmission();
-  if (!form.reportValidity()) { status.textContent = '입력 내용을 확인한 후 다시 제출해 주세요.'; return; }
-  if (name !== form.elements.namedItem('entry.1912926423').value.trim() || phone !== form.elements.namedItem('entry.1239222796').value) { status.textContent = '성함 또는 연락처가 변경되었습니다. 다시 제출해 신청 여부를 확인해 주세요.'; return; }
+  if (!form.reportValidity()) { releaseSubmission(); status.textContent = '입력 내용을 확인한 후 다시 제출해 주세요.'; return; }
+  if (name !== form.elements.namedItem('entry.1912926423').value.trim() || phone !== form.elements.namedItem('entry.1239222796').value) { releaseSubmission(); status.textContent = '성함 또는 연락처가 변경되었습니다. 다시 제출해 신청 여부를 확인해 주세요.'; return; }
   const currentPrice = calculate();
-  if (Number(currentPrice.adults) + Number(currentPrice.children) === 0 || new FormData(form).get('entry.2000713890') !== '동의') { status.textContent = '참가 인원과 촬영 동의 항목을 확인해 주세요.'; return; }
+  if (Number(currentPrice.adults) + Number(currentPrice.children) === 0 || new FormData(form).get('entry.2000713890') !== '동의') { releaseSubmission(); status.textContent = '참가 인원과 촬영 동의 항목을 확인해 주세요.'; return; }
   const reference = crypto.randomUUID();
   const [hour, minute] = document.getElementById('arrival').value.split(':');
   form.elements.namedItem('entry.782972763_hour').value = String(Number(hour));
@@ -188,9 +206,9 @@ form.addEventListener('submit', async event => {
   memo.disabled = true;
   form.querySelector('[data-calculated-memo]')?.remove();
   form.append(element('input', { type: 'hidden', name: 'entry.710258770', 'data-calculated-memo': '', value: `${memo.value}\n\n[홈페이지 자동 계산]\n기본 ${money(currentPrice.base)} / 추가 성인 ${currentPrice.extraAdults}명·아동 ${currentPrice.extraChildren}명: ${money(currentPrice.extraPeople * currentPrice.rate)} / 추가 차량 ${currentPrice.extraCars}대: ${money(currentPrice.extraCars * 10000)}\n입금 예정 금액: ${money(currentPrice.total)} (다자녀 면제 미반영)\n[접수 확인 코드: ${reference}]` }));
-  submitting = true;
-  form.querySelector('[type=submit]').disabled = true;
-  form.setAttribute('aria-busy', 'true');
+  // Persist before sending: reload/back must verify this receipt, never send it again.
+  pendingReceipt = {reference, name, phone, details: submittedDetails};
+  try { sessionStorage.setItem(pendingReceiptKey, JSON.stringify(pendingReceipt)); } catch { /* Keep the in-memory lock. */ }
   document.getElementById('existing-application-link')?.remove();
   startConfirmation(reference, name, phone, submittedDetails);
   status.textContent = '신청서를 제출하고 있습니다. 잠시 후 접수 결과를 확인해 주세요.';
@@ -198,6 +216,13 @@ form.addEventListener('submit', async event => {
 });
 window.addEventListener('pageshow', () => {
   ++submissionAttempt;
+  const pending = readPendingReceipt();
+  if (pending) {
+    lockSubmission('신청 접수 확인 중…');
+    document.getElementById('form-status').textContent = '이미 제출한 신청의 접수 결과를 확인하고 있습니다. 신청서는 다시 전송하지 않습니다.';
+    if (!verification || verification.reference !== pending.reference) startConfirmation(pending.reference, pending.name, pending.phone, pending.details);
+    return;
+  }
   releaseSubmission();
   form.querySelector('[data-calculated-memo]')?.remove();
   form.elements.namedItem('entry.710258770').disabled = false;
@@ -214,6 +239,7 @@ let verification;
 let verificationTimeout;
 let queryNonce = '';
 function startConfirmation(reference, name, phone, details) {
+  lockSubmission('신청 접수 확인 중…');
   verification = { reference, name, phone, details, attempts: 0 };
   setTimeout(checkConfirmation, 2500);
 }
@@ -228,10 +254,14 @@ function checkConfirmation() {
 }
 function confirmationDelayed() {
   clearTimeout(verificationTimeout); queryNonce = '';
+  submitButton.disabled = true;
+  submitButton.textContent = '제출됨 · 접수 확인 필요';
+  submitButton.removeAttribute('aria-busy');
+  form.removeAttribute('aria-busy');
   document.getElementById('form-status').textContent = '접수 확인이 지연되고 있습니다. 중복 제출하지 마시고 신청 내역 확인하기에서 조회해 주세요.';
   if (!document.getElementById('verification-retry')) {
     const retry = element('button',{type:'button',id:'verification-retry',class:'text-link'},'접수 여부 다시 확인하기');
-    retry.addEventListener('click',()=>{verification.attempts=0; document.getElementById('form-status').textContent='접수 여부를 다시 확인하고 있습니다.'; checkConfirmation();});
+    retry.addEventListener('click',()=>{if(queryNonce)return; lockSubmission('신청 접수 확인 중…'); verification.attempts=0; document.getElementById('form-status').textContent='접수 여부를 다시 확인하고 있습니다. 신청서는 다시 전송하지 않습니다.'; checkConfirmation();});
     document.getElementById('form-status').after(retry);
   }
 }
@@ -245,7 +275,11 @@ function receiveConfirmation(data) {
   if (!data.ok || !Array.isArray(data.records)) { confirmationDelayed(); return; }
   const saved = data.records.find(record => record.reference === verification.reference);
   if (!saved) { setTimeout(checkConfirmation, 4000); return; }
-  try { sessionStorage.setItem('xmas-confirmed-receipt', JSON.stringify({...saved, details: verification.details})); }
+  try {
+    sessionStorage.setItem('xmas-confirmed-receipt', JSON.stringify({...saved, details: verification.details}));
+    sessionStorage.removeItem(pendingReceiptKey);
+    pendingReceipt = null;
+  }
   catch { document.getElementById('form-status').textContent='신청이 접수되었습니다. 이 기기에서 완료 내역을 보관할 수 없어 신청 내역 확인하기에서 조회해 주세요.'; return; }
   location.assign('complete.html');
 }
