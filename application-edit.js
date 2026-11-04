@@ -97,7 +97,7 @@ function renderEditForm(panel, initial, save, status, close) {
   const consent=editNode('p',{class:'fine-print'},'최초 신청 시 선택한 개인정보·촬영 동의 내용은 유지됩니다. 수정 내용은 시트에 반영하고 등록된 이메일로 안내합니다.');
   const submit=editNode('button',{type:'submit',class:'button button-red submit-button'},'변경 내용 저장하기');
   form.append(summary,consent,submit);panel.insertBefore(form,status);panel.append(close);
-  function recalculate(){const options=registrationFields.find(q=>q.entries[0].id===1592266769).entries[0].options,index=options.indexOf(controls.get('1592266769').value);const extraPeople=Math.max(0,Number(controls.get('1357739873').value)-2)+Math.max(0,Number(controls.get('1724175323').value)-2);const cars=controls.get('126976328').selectedIndex;amount.textContent=index<0?'숙소 선택 필요':(([180000,180000,190000,480000][index])+extraPeople*(index===3?20000:10000)+cars*10000).toLocaleString('ko-KR')+'원';}
+  function recalculate(){const options=registrationFields.find(q=>q.entries[0].id===1592266769).entries[0].options,index=options.indexOf(controls.get('1592266769').value);const includedPeople=index===3?4:2;const extraPeople=Math.max(0,Number(controls.get('1357739873').value)-includedPeople)+Math.max(0,Number(controls.get('1724175323').value)-includedPeople);const cars=Math.max(0,controls.get('126976328').selectedIndex-(index===3?1:0));amount.textContent=index<0?'숙소 선택 필요':(([180000,180000,190000,480000][index])+extraPeople*(index===3?20000:10000)+cars*10000).toLocaleString('ko-KR')+'원';}
   form.addEventListener('input',recalculate);form.addEventListener('change',recalculate);recalculate();
   form.addEventListener('submit',async event=>{
     event.preventDefault();submit.disabled=true;status.textContent='변경 내용을 저장하고 있습니다.';

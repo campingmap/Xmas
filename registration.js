@@ -97,11 +97,14 @@ function calculate() {
   const index = lodgingOptions.indexOf(data.get('entry.1592266769'));
   const adults = data.get('entry.1357739873');
   const children = data.get('entry.1724175323');
-  const extraPeople = Math.max(0, Number(adults) - 2) + Math.max(0, Number(children) - 2);
+  const includedPeople = index === 3 ? 4 : 2;
+  const extraAdults = Math.max(0, Number(adults) - includedPeople);
+  const extraChildren = Math.max(0, Number(children) - includedPeople);
+  const extraPeople = extraAdults + extraChildren;
   const rate = index >= 3 ? 20000 : 10000;
-  const extraCars = document.getElementById('extra-cars').selectedIndex;
+  const extraCars = Math.max(0, document.getElementById('extra-cars').selectedIndex - (index === 3 ? 1 : 0));
   const base = basePrices[index] || 0;
-  return { index, adults, children, extraPeople, rate, extraCars, base, total: base + extraPeople * rate + extraCars * 10000 };
+  return { index, adults, children, extraAdults, extraChildren, extraPeople, rate, extraCars, base, total: base + extraPeople * rate + extraCars * 10000 };
 }
 function updatePrice() {
   const p = calculate();
@@ -134,7 +137,7 @@ form.addEventListener('submit', event => {
   // A separate hidden value preserves the user's memo if navigation fails or they return.
   memo.disabled = true;
   form.querySelector('[data-calculated-memo]')?.remove();
-  form.append(element('input', { type: 'hidden', name: 'entry.710258770', 'data-calculated-memo': '', value: `${memo.value}\n\n[홈페이지 자동 계산]\n기본 ${money(p.base)} / 추가 성인 ${Math.max(0, Number(p.adults) - 2)}명·아동 ${Math.max(0, Number(p.children) - 2)}명: ${money(p.extraPeople * p.rate)} / 추가 차량 ${p.extraCars}대: ${money(p.extraCars * 10000)}\n입금 예정 금액: ${money(p.total)} (다자녀 면제 미반영)\n[접수 확인 코드: ${reference}]` }));
+  form.append(element('input', { type: 'hidden', name: 'entry.710258770', 'data-calculated-memo': '', value: `${memo.value}\n\n[홈페이지 자동 계산]\n기본 ${money(p.base)} / 추가 성인 ${p.extraAdults}명·아동 ${p.extraChildren}명: ${money(p.extraPeople * p.rate)} / 추가 차량 ${p.extraCars}대: ${money(p.extraCars * 10000)}\n입금 예정 금액: ${money(p.total)} (다자녀 면제 미반영)\n[접수 확인 코드: ${reference}]` }));
   submitting = true;
   form.querySelector('[type=submit]').disabled = true;
   startConfirmation(reference, form.elements.namedItem('entry.1912926423').value.trim(), form.elements.namedItem('entry.1239222796').value, submittedDetails);
