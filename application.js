@@ -7,7 +7,7 @@ const results = document.getElementById('lookup-results');
 const phone = document.getElementById('lookup-phone');
 let currentNonce = '';
 let lookupTimer;
-phone.addEventListener('input', () => { phone.value = phone.value.replace(/\D/g, '').slice(0, 11); });
+CAMP_CONTACT.configurePhone(phone);
 function finishLookup(message) {
   clearTimeout(lookupTimer);
   lookup.querySelector('button').disabled = false;

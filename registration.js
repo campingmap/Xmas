@@ -71,8 +71,7 @@ registrationFields.forEach(question => {
         input.addEventListener('blur', () => { input.value = input.value.trim(); });
       }
       if (entry.id === 1239222796) {
-        input.autocomplete = 'tel'; input.inputMode = 'numeric'; input.pattern = '[0-9]{10,11}'; input.maxLength = 11; input.minLength = 10; input.placeholder = '01012345678';
-        input.addEventListener('input', () => { input.value = input.value.replace(/\D/g, '').slice(0, 11); });
+        CAMP_CONTACT.configurePhone(input); input.placeholder = '01012345678';
         if (!question.description) group.append(element('p', { class: 'field-description' }, '연락처는 하이픈(-) 없이 숫자만 입력해 주세요. 예: 01012345678'));
       }
       group.append(input);

@@ -74,7 +74,7 @@ function renderEditForm(panel, initial, save, status, close) {
     if(!options&&type!=='textarea')input.type=type;
     if(required)input.required=true;
     if(options)options.forEach(value=>input.append(editNode('option',{value},value)));
-    if(id===1239222796){input.inputMode='numeric';input.pattern='[0-9]{10,11}';input.maxLength=11;input.addEventListener('input',()=>{input.value=input.value.replace(/\D/g,'').slice(0,11);});}
+    if(id===1239222796)CAMP_CONTACT.configurePhone(input);
     if(id===710258770)input.maxLength=1500;
     if(type==='time')input.step=60;
     input.name=String(id);input.value=String(initial[id]??'');controls.set(String(id),input);label.append(input);wrap.append(label);form.append(wrap);return input;
