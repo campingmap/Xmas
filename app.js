@@ -34,9 +34,21 @@ posterDialog.addEventListener('click', event => {
   if (event.target === posterDialog && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) posterDialog.close();
 });
 posterDialog.addEventListener('close', () => {
-  document.body.classList.remove('dialog-open');
+  document.body.classList.toggle('dialog-open', Boolean(document.querySelector('dialog[open]')));
   posterTrigger?.focus({ preventScroll: true });
 });
+
+const availabilityDialog = document.getElementById('availability-dialog');
+availabilityDialog.querySelector('.availability-close').addEventListener('click', () => availabilityDialog.close());
+availabilityDialog.addEventListener('click', event => {
+  const bounds = availabilityDialog.getBoundingClientRect();
+  if (event.target === availabilityDialog && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) availabilityDialog.close();
+});
+availabilityDialog.addEventListener('close', () => {
+  document.body.classList.toggle('dialog-open', Boolean(document.querySelector('dialog[open]')));
+});
+availabilityDialog.showModal();
+document.body.classList.add('dialog-open');
 
 const carol = document.getElementById('camp-carol');
 const musicToggle = document.getElementById('music-toggle');
